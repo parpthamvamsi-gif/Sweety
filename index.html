@@ -83,7 +83,7 @@
         button.mic-btn { background: #0088ff; }
         .chat-box {
             background: #080810; border-radius: 12px; padding: 15px;
-            text-align: left; font-size: 14px; min-height: 50px; border-left: 3px solid #ff007f;
+            text-align: left; font-size: 14px; min-height: 50px; border-left: 3px solid #ff007f; word-break: break-word;
         }
     </style>
 </head>
@@ -159,43 +159,43 @@
         setAvatarState('thinking', 'STATUS: SWEETY IS THINKING...');
         output.innerText = "Processing...";
 
-        // TRY GEMINI 2.5 FLASH FIRST
-        let success = await tryModel("gemini-2.5-flash", apiKey, prompt);
-        
-        // IF FAILED, FALLBACK TO GEMINI 2.0 FLASH
-        if (!success) {
-            success = await tryModel("gemini-2.0-flash", apiKey, prompt);
+        // Fallback models sequence
+        const models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-flash-latest"];
+        let responseText = null;
+
+        for (let model of models) {
+            responseText = await tryCallModel(model, apiKey, prompt);
+            if (responseText) break;
         }
 
-        if (!success) {
-            output.innerText = "Error fetching model response. Please verify API Key.";
+        if (responseText) {
+            output.innerText = responseText;
+            speakReply(responseText);
+        } else {
+            output.innerText = "Error: Invalid Key or All API Endpoints Failed.";
             setAvatarState('normal', 'STATUS: API ERROR');
         }
     }
 
-    async function tryModel(modelName, apiKey, prompt) {
-        const output = document.getElementById("output");
+    async function tryCallModel(modelName, apiKey, prompt) {
         try {
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
             const res = await fetch(url, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    contents: [{ parts: [{ text: "You are Sweety, a friendly AI assistant. Give short reply: " + prompt }] }]
+                    contents: [{ parts: [{ text: "You are Sweety, a warm friendly AI assistant. Reply short: " + prompt }] }]
                 })
             });
 
             const data = await res.json();
             if (data.candidates && data.candidates[0].content && data.candidates[0].content.parts[0].text) {
-                const reply = data.candidates[0].content.parts[0].text;
-                output.innerText = reply;
-                speakReply(reply);
-                return true;
+                return data.candidates[0].content.parts[0].text;
             }
         } catch (e) {
-            console.error(e);
+            console.error("Model " + modelName + " failed", e);
         }
-        return false;
+        return null;
     }
 
     function speakReply(text) {
