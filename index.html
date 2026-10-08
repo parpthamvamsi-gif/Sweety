@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sweety AI Brain Test</title>
+  <style>
+    body { background-color: #121212; color: #ff66cc; font-family: monospace; padding: 20px; }
+    h2 { text-align: center; letter-spacing: 2px; color: #ff66cc; }
+    textarea { width: 100%; height: 90px; background: #222; color: #fff; border: 1px solid #ff66cc; padding: 8px; box-sizing: border-box; }
+    button { width: 100%; background: #ff66cc; color: #000; padding: 12px; font-weight: bold; border: none; margin-top: 10px; font-size: 16px; }
+    #response { margin-top: 20px; white-space: pre-wrap; background: #1a1a1a; color: #fff; padding: 12px; border-left: 4px solid #ff66cc; min-height: 80px; }
+  </style>
+</head>
+<body>
+  <h2>S.W.E.E.T.Y BRAIN TEST</h2>
+  <textarea id="prompt" placeholder="Hello Sweety..."></textarea><br>
+  <button onclick="askGemini()">SEND REQUEST</button>
+  <div id="response">Status: Sweety Offline</div>
+
+  <script>
+    // ⚠️️ Ne Gemini API Key ni ikkada paste cheyi
+    const API_KEY = ."PASTE_YOUR_KEY_HERE";
+
+    // Alternative active models for seamless fallback
+    const models = ["gemini-3.8-flash", "gemini-3.5-flash-lite"];
+
+    async function askGemini() {
+      const promptText = document.getElementById('prompt').value;
+      const responseDiv = document.getElementById('response');
+      
+      if (!promptText.trim()) {
+        responseDiv.innerText = "Please type a message for Sweety!";
+        return;
+      }
+      
+      responseDiv.innerText = "Sweety is Connecting...";
+
+      for (let model of models) {
+        try {
+          responseDiv.innerText = `Connecting via ${model}...`;
+          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: "You are Sweety, a super smart and friendly AI assistant. Reply cheerfully to: " + promptText }] }]
+            })
+          });
+
+          const data = await res.json();
+
+          if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
+            responseDiv.innerText = "SWEETY ONLINE:\n\n" + data.candidates[0].content.parts[0].text;
+            return; // Success, exit function
+          } else if (data.error && data.error.message.includes("high demand")) {
+            console.warn(`${model} high demand, trying next model...`);
+            continue; // Try next model in loop
+          } else if (data.error) {
+            responseDiv.innerText = "API Error: " + data.error.message;
+            return;
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      }
+      
+      responseDiv.innerText = "Sweety is busy due to high traffic on Google servers. Please tap SEND REQUEST again in 10 seconds!";
+    }
+  </script>
+</body>
+</html>
