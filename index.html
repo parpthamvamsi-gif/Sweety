@@ -159,8 +159,8 @@
         setAvatarState('thinking', 'STATUS: SWEETY IS THINKING...');
         output.innerText = "Processing...";
 
-        // Fast & Direct API Endpoint Call
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+        // Updated Model: gemini-3.8-flash (As requested in API error notice)
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`;
         const instructionPrompt = "Act as Sweety, a quick AI voice assistant. Give an extremely brief response (maximum 2 short sentences). Reply language: same as user language. User prompt: " + promptText;
 
         try {
@@ -194,13 +194,13 @@
     function speakReply(text) {
         synth.cancel();
         
-        // Remove formatting symbols and emojis so SpeechSynthesis won't speak 'asterisk' or emojis
+        // Remove symbols and emojis so Voice Assistant won't read 'asterisk' or 'heart'
         let cleanText = text
             .replace(/\*+/g, '')
             .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '');
 
         const utterance = new SpeechSynthesisUtterance(cleanText);
-        utterance.rate = 1.05; // Snappy speed pace
+        utterance.rate = 1.05;
         utterance.onstart = () => setAvatarState('speaking', 'STATUS: SWEETY SPEAKING...');
         utterance.onend = () => setAvatarState('normal', 'STATUS: READY');
         synth.speak(utterance);
@@ -208,4 +208,5 @@
 </script>
 
 </body>
-</html>
+    </html>
+    
