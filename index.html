@@ -159,7 +159,6 @@
         setAvatarState('thinking', 'STATUS: SWEETY IS THINKING...');
         output.innerText = "Processing...";
 
-        // Fallback models sequence
         const models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-flash-latest"];
         let responseText = null;
 
@@ -172,7 +171,7 @@
             output.innerText = responseText;
             speakReply(responseText);
         } else {
-            output.innerText = "Error: Invalid Key or All API Endpoints Failed.";
+            output.innerText = "Error: Invalid Key or Connection Issue.";
             setAvatarState('normal', 'STATUS: API ERROR');
         }
     }
@@ -184,7 +183,10 @@
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    contents: [{ parts: [{ text: "You are Sweety, a warm friendly AI assistant. Reply short: " + prompt }] }]
+                    systemInstruction: {
+                        parts: [{ text: "You are Sweety, a warm quick AI voice assistant. Give responses very brief, sweet and max 2 short sentences in requested language." }]
+                    },
+                    contents: [{ parts: [{ text: prompt }] }]
                 })
             });
 
@@ -200,7 +202,14 @@
 
     function speakReply(text) {
         synth.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
+        
+        // Symbols and Emojis filter so voice won't speak 'asterisk' or 'red heart'
+        let cleanText = text
+            .replace(/\*+/g, '')
+            .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '');
+
+        const utterance = new SpeechSynthesisUtterance(cleanText);
+        utterance.rate = 1.05; // Slightly faster pace for snappy feel
         utterance.onstart = () => setAvatarState('speaking', 'STATUS: SWEETY SPEAKING...');
         utterance.onend = () => setAvatarState('normal', 'STATUS: READY');
         synth.speak(utterance);
@@ -208,4 +217,5 @@
 </script>
 
 </body>
-</html>
+    </html>
+    
