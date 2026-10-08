@@ -159,9 +159,8 @@
         setAvatarState('thinking', 'STATUS: SWEETY IS THINKING...');
         output.innerText = "Processing...";
 
-        // Updated Endpoint: gemini-3.8-flash
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`;
-        const instructionPrompt = "Act as Sweety, a quick AI voice assistant. Give an extremely brief response (maximum 2 short sentences). Reply language: same as user language. User prompt: " + promptText;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+        const instructionPrompt = "Act as Sweety, a quick AI voice assistant. Give an extremely brief response in maximum 2 short sentences. Language: same as prompt. User prompt: " + promptText;
 
         try {
             const res = await fetch(url, {
@@ -179,7 +178,7 @@
                 output.innerText = reply;
                 speakReply(reply);
             } else if (data.error) {
-                output.innerText = "Error: " + (data.error.message || "Invalid API Key");
+                output.innerText = "Error: " + (data.error.message || "API Error");
                 setAvatarState('normal', 'STATUS: API ERROR');
             } else {
                 output.innerText = "Error fetching response.";
@@ -196,7 +195,7 @@
         
         let cleanText = text
             .replace(/\*+/g, '')
-            .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '');
+            .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F800}-\u{1F8FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '');
 
         const utterance = new SpeechSynthesisUtterance(cleanText);
         utterance.rate = 1.05;
