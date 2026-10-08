@@ -159,33 +159,43 @@
         setAvatarState('thinking', 'STATUS: SWEETY IS THINKING...');
         output.innerText = "Processing...";
 
+        // TRY GEMINI 2.5 FLASH FIRST
+        let success = await tryModel("gemini-2.5-flash", apiKey, prompt);
+        
+        // IF FAILED, FALLBACK TO GEMINI 2.0 FLASH
+        if (!success) {
+            success = await tryModel("gemini-2.0-flash", apiKey, prompt);
+        }
+
+        if (!success) {
+            output.innerText = "Error fetching model response. Please verify API Key.";
+            setAvatarState('normal', 'STATUS: API ERROR');
+        }
+    }
+
+    async function tryModel(modelName, apiKey, prompt) {
+        const output = document.getElementById("output");
         try {
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
             const res = await fetch(url, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    contents: [{ parts: [{ text: "You are Sweety, a smart friendly AI assistant. Answer briefly in a warm, friendly tone: " + prompt }] }]
+                    contents: [{ parts: [{ text: "You are Sweety, a friendly AI assistant. Give short reply: " + prompt }] }]
                 })
             });
 
             const data = await res.json();
-            
             if (data.candidates && data.candidates[0].content && data.candidates[0].content.parts[0].text) {
                 const reply = data.candidates[0].content.parts[0].text;
                 output.innerText = reply;
                 speakReply(reply);
-            } else if (data.error) {
-                output.innerText = "Error: " + data.error.message;
-                setAvatarState('normal', 'STATUS: API ERROR');
-            } else {
-                output.innerText = "Error: Unable to fetch response.";
-                setAvatarState('normal', 'STATUS: API ERROR');
+                return true;
             }
         } catch (e) {
-            output.innerText = "Connection Error! Check internet or API key.";
-            setAvatarState('normal', 'STATUS: OFFLINE');
+            console.error(e);
         }
+        return false;
     }
 
     function speakReply(text) {
