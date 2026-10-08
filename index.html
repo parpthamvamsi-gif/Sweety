@@ -29,7 +29,6 @@
         h1 { color: #ff007f; font-size: 24px; letter-spacing: 3px; margin-bottom: 5px; }
         .status-text { font-size: 13px; color: #00ffcc; margin-bottom: 25px; font-weight: 600; }
         
-        /* VISUAL AVATAR BODY ANIMATION */
         .avatar-container {
             position: relative;
             width: 130px;
@@ -99,7 +98,7 @@
         <div class="avatar-core"></div>
     </div>
 
-    <input type="password" id="apiKey" placeholder="Paste Gemini API Key (Saved Automatically)" oninput="saveApiKey()">
+    <input type="password" id="apiKey" placeholder="Paste Gemini API Key" oninput="saveApiKey()">
     <textarea id="prompt" placeholder="Type or click Speak..."></textarea>
 
     <div class="controls">
@@ -113,7 +112,6 @@
 <script>
     let synth = window.speechSynthesis;
 
-    // Load saved API Key automatically on startup
     window.onload = function() {
         const savedKey = localStorage.getItem("sweety_gemini_key");
         if (savedKey) {
@@ -162,51 +160,30 @@
         output.innerText = "Processing...";
 
         try {
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-            const res = await fetch(url, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    contents: [{ parts: [{ text: "You are Sweety, a smart friendly AI assistant. Give short reply: " + prompt }] }]
-                })
-            });
-
-            const data = await res.json();
-            
-            if (data.candidates && data.candidates[0].content.parts[0].text) {
-                const reply = data.candidates[0].content.parts[0].text;
-                output.innerText = reply;
-                speakReply(reply);
-            } else {
-                fetchBackupModel(apiKey, prompt);
-            }
-        } catch (e) {
-            fetchBackupModel(apiKey, prompt);
-        }
-    }
-
-    async function fetchBackupModel(apiKey, prompt) {
-        const output = document.getElementById("output");
-        try {
             const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
             const res = await fetch(url, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    contents: [{ parts: [{ text: "You are Sweety, a smart friendly AI assistant. Give short reply: " + prompt }] }]
+                    contents: [{ parts: [{ text: "You are Sweety, a smart friendly AI assistant. Answer briefly in a warm, friendly tone: " + prompt }] }]
                 })
             });
+
             const data = await res.json();
-            if (data.candidates && data.candidates[0].content.parts[0].text) {
+            
+            if (data.candidates && data.candidates[0].content && data.candidates[0].content.parts[0].text) {
                 const reply = data.candidates[0].content.parts[0].text;
                 output.innerText = reply;
                 speakReply(reply);
+            } else if (data.error) {
+                output.innerText = "Error: " + data.error.message;
+                setAvatarState('normal', 'STATUS: API ERROR');
             } else {
-                output.innerText = "Error: Invalid API Key!";
+                output.innerText = "Error: Unable to fetch response.";
                 setAvatarState('normal', 'STATUS: API ERROR');
             }
-        } catch(err) {
-            output.innerText = "Connection Error!";
+        } catch (e) {
+            output.innerText = "Connection Error! Check internet or API key.";
             setAvatarState('normal', 'STATUS: OFFLINE');
         }
     }
