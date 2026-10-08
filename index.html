@@ -150,66 +150,57 @@
 
     async function askSweety() {
         const apiKey = document.getElementById("apiKey").value.trim();
-        const prompt = document.getElementById("prompt").value.trim();
+        const promptText = document.getElementById("prompt").value.trim();
         const output = document.getElementById("output");
 
         if (!apiKey) { alert("API Key Enter Chei Mawa!"); return; }
-        if (!prompt) { alert("Message Type or Speak Chei!"); return; }
+        if (!promptText) { alert("Message Type or Speak Chei!"); return; }
 
         setAvatarState('thinking', 'STATUS: SWEETY IS THINKING...');
         output.innerText = "Processing...";
 
-        // Speed-optimized models
-        const models = ["gemini-2.0-flash", "gemini-1.5-flash-latest"];
-        let responseText = null;
+        // Fast & Direct API Endpoint Call
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+        const instructionPrompt = "Act as Sweety, a quick AI voice assistant. Give an extremely brief response (maximum 2 short sentences). Reply language: same as user language. User prompt: " + promptText;
 
-        for (let model of models) {
-            responseText = await tryCallModel(model, apiKey, prompt);
-            if (responseText) break;
-        }
-
-        if (responseText) {
-            output.innerText = responseText;
-            speakReply(responseText);
-        } else {
-            output.innerText = "Error: Invalid API Key or Network Connection.";
-            setAvatarState('normal', 'STATUS: API ERROR');
-        }
-    }
-
-    async function tryCallModel(modelName, apiKey, prompt) {
         try {
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
-            const promptInstruction = "Respond as Sweety, a warm AI voice assistant. Give a very short answer in 2 short sentences max. " + prompt;
-
             const res = await fetch(url, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    contents: [{ parts: [{ text: promptInstruction }] }]
+                    contents: [{ parts: [{ text: instructionPrompt }] }]
                 })
             });
 
             const data = await res.json();
+
             if (data.candidates && data.candidates[0].content && data.candidates[0].content.parts[0].text) {
-                return data.candidates[0].content.parts[0].text;
+                const reply = data.candidates[0].content.parts[0].text;
+                output.innerText = reply;
+                speakReply(reply);
+            } else if (data.error) {
+                output.innerText = "Error: " + (data.error.message || "Invalid API Key");
+                setAvatarState('normal', 'STATUS: API ERROR');
+            } else {
+                output.innerText = "Error fetching response.";
+                setAvatarState('normal', 'STATUS: API ERROR');
             }
         } catch (e) {
-            console.error("Model " + modelName + " failed", e);
+            output.innerText = "Network Error! Check your connection or API Key.";
+            setAvatarState('normal', 'STATUS: API ERROR');
         }
-        return null;
     }
 
     function speakReply(text) {
         synth.cancel();
         
-        // Symbols & Emojis Removal for clean reading
+        // Remove formatting symbols and emojis so SpeechSynthesis won't speak 'asterisk' or emojis
         let cleanText = text
             .replace(/\*+/g, '')
             .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '');
 
         const utterance = new SpeechSynthesisUtterance(cleanText);
-        utterance.rate = 1.1; 
+        utterance.rate = 1.05; // Snappy speed pace
         utterance.onstart = () => setAvatarState('speaking', 'STATUS: SWEETY SPEAKING...');
         utterance.onend = () => setAvatarState('normal', 'STATUS: READY');
         synth.speak(utterance);
