@@ -159,10 +159,34 @@
         setAvatarState('thinking', 'STATUS: SWEETY IS THINKING...');
         output.innerText = "Processing...";
 
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`;
-        const instructionPrompt = "Act as Sweety, a quick AI voice assistant. Give an extremely brief response in maximum 2 short sentences. Language: same as prompt. User prompt: " + promptText;
+        // Multi-model auto switch mechanism
+        const candidateModels = [
+            "gemini-2.5-flash",
+            "gemini-1.5-flash",
+            "gemini-2.0-flash"
+        ];
 
+        let replyText = null;
+
+        for (let model of candidateModels) {
+            replyText = await fetchFromGemini(model, apiKey, promptText);
+            if (replyText) break; // Direct success, exit loop
+        }
+
+        if (replyText) {
+            output.innerText = replyText;
+            speakReply(replyText);
+        } else {
+            output.innerText = "High demand on server. Please try clicking SEND again in a few seconds!";
+            setAvatarState('normal', 'STATUS: API ERROR');
+        }
+    }
+
+    async function fetchFromGemini(modelName, apiKey, promptText) {
         try {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+            const instructionPrompt = "Act as Sweety, a quick AI voice assistant. Give an extremely brief response in maximum 2 short sentences. Reply in same language as prompt. User prompt: " + promptText;
+
             const res = await fetch(url, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -172,22 +196,13 @@
             });
 
             const data = await res.json();
-
             if (data.candidates && data.candidates[0].content && data.candidates[0].content.parts[0].text) {
-                const reply = data.candidates[0].content.parts[0].text;
-                output.innerText = reply;
-                speakReply(reply);
-            } else if (data.error) {
-                output.innerText = "Error: " + (data.error.message || "API Error");
-                setAvatarState('normal', 'STATUS: API ERROR');
-            } else {
-                output.innerText = "Error fetching response.";
-                setAvatarState('normal', 'STATUS: API ERROR');
+                return data.candidates[0].content.parts[0].text;
             }
         } catch (e) {
-            output.innerText = "Network Error! Check your connection or API Key.";
-            setAvatarState('normal', 'STATUS: API ERROR');
+            console.warn("Model " + modelName + " failed, trying next...");
         }
+        return null;
     }
 
     function speakReply(text) {
